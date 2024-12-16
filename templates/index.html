@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTO Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">PTO Tracker</h1>
+
+        <!-- Tabs for selecting year -->
+        <div class="d-flex justify-content-center mb-3">
+            <button class="btn btn-primary tab-button" onclick="changeYear(2024)">2024</button>
+            <button class="btn btn-primary tab-button" onclick="changeYear(2025)">2025</button>
+        </div>
+
+        <!-- Tabs for selecting month -->
+        <div class="d-flex justify-content-center mb-3">
+            {% for month in range(1, 13) %}
+                <button class="btn btn-primary tab-button" onclick="changeMonth({{ month }})">
+                    {{ calendar.month_name[month] }}
+                </button>
+            {% endfor %}
+        </div>
+
+        <!-- Calendar -->
+        <div id="calendar-container" class="mb-3">
+            <h2 class="text-center">{{ calendar.month_name[current_month] }} {{ current_year }}</h2>
+            <form method="POST" action="/">
+                <input type="hidden" name="month" value="{{ current_month }}">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Mon</th>
+                            <th>Tue</th>
+                            <th>Wed</th>
+                            <th>Thu</th>
+                            <th>Fri</th>
+                            <th>Sat</th>
+                            <th>Sun</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in month_calendar %}
+                        <tr>
+                            {% for day in week %}
+                                <td>
+                                    {% if day != 0 %}
+                                        <div>{{ day }}</div>
+                                        <!-- Check if there is saved data for the day -->
+                                        {% set day_data = saved_schedule | selectattr('date', 'equalto', day) | list %}
+                                        {% if day_data %}
+                                            <input type="hidden" name="day_data[]" value="{{ day }},{{ day_data[0].hours_worked }},{{ day_data[0].pto_used }}">
+                                            <input type="number" class="form-control mb-2" name="hours_worked_{{ day }}" placeholder="Hours worked" value="{{ day_data[0].hours_worked }}" step="0.001">
+                                            <input type="number" class="form-control mb-2" name="pto_used_{{ day }}" placeholder="PTO used" value="{{ day_data[0].pto_used }}" step="0.001">
+                                        {% else %}
+                                            <input type="hidden" name="day_data[]" value="{{ day }},0,0">
+                                            <input type="number" class="form-control mb-2" name="hours_worked_{{ day }}" placeholder="Hours worked" value="" step="0.001">
+                                            <input type="number" class="form-control mb-2" name="pto_used_{{ day }}" placeholder="PTO used" value="" step="0.001">
+                                        {% endif %}
+                                        <!-- Checkbox for days off -->
+                                        <input type="checkbox" name="day_off[]" value="{{ day }}"> Day Off
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+        </div>
+
+        <!-- PTO and accrual inputs -->
+        <div class="mb-3">
+            <form method="POST" action="/">
+                <input type="hidden" name="month" value="{{ current_month }}">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                <div class="mb-3">
+                    <label for="current_accrued" class="form-label">Current PTO Accrued (hours):</label>
+                    <input type="number" class="form-control" id="current_accrued" name="current_accrued" value="{{ pto_data.current_accrued }}" step="0.001">
+                </div>
+                <div class="mb-3">
+                    <label for="accrual_rate" class="form-label">PTO Accrual Rate (hours per hour worked):</label>
+                    <input type="number" step="0.001" class="form-control" id="accrual_rate" name="accrual_rate" value="{{ pto_data.accrual_rate }}">
+                </div>
+                <div class="mb-3">
+                    <label for="last_update_date" class="form-label">Last PTO Update Date:</label>
+                    <input type="date" class="form-control" id="last_update_date" name="last_update_date" value="{{ pto_data.last_update_date }}">
+                </div>
+                <button type="submit" class="btn btn-primary">Save PTO Data</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
